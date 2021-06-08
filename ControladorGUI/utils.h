@@ -39,6 +39,7 @@ void encerraAvioes(MemDados* mem, Aviao avioes[], int nAviao);
 BOOL aviaoChegou(Aviao aviao);
 BOOL existeAeroportoAsString(TCHAR ap[], Aeroporto* BufAeroportos, int numAeroportos);
 int comunicaPassageiro(HANDLE hPipe, HANDLE evento, TCHAR msg[200]);
+HBITMAP LoadImagemDisco(TCHAR* nome);
 
 #endif /*UTILS_H*/
 

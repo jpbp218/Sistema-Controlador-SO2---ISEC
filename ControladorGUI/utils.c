@@ -191,4 +191,13 @@ void removeCliente(PDATAPIPES dadosPipes, HANDLE hPipe) {
 }
 
 
-
+HBITMAP LoadImagemDisco(TCHAR* nome) {
+	int coderro;
+	HBITMAP aux;
+	aux = LoadImage(NULL, nome,
+		IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION | LR_DEFAULTSIZE | LR_LOADFROMFILE);
+	if (aux == NULL) {
+		coderro = GetLastError();
+	}
+	return aux;
+}

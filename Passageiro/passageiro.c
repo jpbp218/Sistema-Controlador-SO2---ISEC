@@ -367,5 +367,3 @@ DWORD WINAPI Temporizador(LPVOID param) {
 	return 0;
 }
 
-// cona
-

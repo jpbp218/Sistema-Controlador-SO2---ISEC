@@ -24,6 +24,11 @@ MemDados sem;
 Sinc sinc;
 THREADCONS threadcons;
 
+HBITMAP plane, airport;
+HDC hdcpic;
+HDC hdcDB = NULL;
+HBITMAP hbDB = NULL;
+
 /*typedef struct{
 	DATAPIPES dadosPipe;
 	HANDLE hthread[4];
@@ -265,7 +270,15 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 		return -1;
 	}
 
-	//todo Dialog box para isto _ftprintf(stdout, TEXT("Aviões: %d\nAeroportos: %d\n\n"), estruturaThread.valoresMax.numMaxAvioes, estruturaThread.valoresMax.numMaxAeroportos);
+	// --- inicia pics
+	plane = LoadImagemDisco(TEXT("C:\\Users\\João Pedro\\source\\repos\\Trabalho Prático SO2\\ControladorGUI\\plane.png"));  // Carrega Avião
+	airport = LoadImagemDisco(TEXT("C:\\Users\\João Pedro\\source\\repos\\Trabalho Prático SO2\\ControladorGUI\\airport.png"));
+
+	HDC hdcjan = GetDC(hWnd);
+	hdcpic = CreateCompatibleDC(hdcjan);
+	SelectObject(hdcpic, plane);
+	ReleaseDC(hWnd, hdcjan);
+
 
 	// ============================================================================
 	// 4. Mostrar a janela
@@ -296,11 +309,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 	free(threadcons.listaAvioes);
 	return((int)lpMsg.wParam);	// Retorna sempre o parâmetro wParam da estrutura lpMsg
 }
-
-HBITMAP hbpic;
-HDC hdcpic;
-HDC hdcDB = NULL;
-HBITMAP hbDB = NULL;
 
 LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam) {
 	//PDATA dados = (PDATA)GetWindowLongPtr(hWnd,0);
@@ -362,47 +370,57 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 			}
 			break;
 		}
-		//case WM_PAINT: 
-		//{
-		//	hdc = BeginPaint(hWnd, &ps);
+		case WM_PAINT: 
+		{
+			hdc = BeginPaint(hWnd, &ps);
 
-		//	// dbuffer
-		//	GetClientRect(hWnd, &area); // not ready during WM_CREATE
-		//	if (hdcDB == NULL) {
-		//		hdcDB = CreateCompatibleDC(hdc);
-		//		// linha abaixo: tazves fique desactualizada no primiro resize - ver isto
-		//		hbDB = CreateCompatibleBitmap(hdc, area.right, area.bottom);
-		//		SelectObject(hdcDB, hbDB);
-		//	}
+			// dbuffer
+			GetClientRect(hWnd, &area); // not ready during WM_CREATE
+			if (hdcDB == NULL) {
+				hdcDB = CreateCompatibleDC(hdc);
+				// linha abaixo: tazves fique desactualizada no primiro resize - ver isto
+				hbDB = CreateCompatibleBitmap(hdc, area.right, area.bottom);
+				SelectObject(hdcDB, hbDB);
+			}
 
-		//	FillRect(hdcDB, &area, (HBRUSH)GetStockObject(WHITE_BRUSH));
+			FillRect(hdcDB, &area, (HBRUSH)GetStockObject(GRAY_BRUSH));
 
-		//	// Pintar todos os aeroportos
-		//	for (int i = 0; i < estruturaThread.dadosMem.BufCircular->nAeroportos; i++)
-		//	{
-		//		BitBlt(hdcDB,
-		//			estruturaThread.dadosMem.BufAeroportos[i].pos.x, estruturaThread.dadosMem.BufAeroportos[i].pos.y,
-		//			100, 100,
-		//			hdcpic, 0, 0, SRCCOPY);
-		//	}
+			BitBlt(hdcDB,
+				500,500,
+				100, 100,
+				hdcpic, 0, 0, SRCCOPY);
 
-		//	// Pintar todos os Aviões
-		//	for (int i = 0; i < estruturaThread.nAviao; i++)
-		//	{
-		//		BitBlt(hdcDB,
-		//			estruturaThread.listaAvioes[i].pos.x , estruturaThread.listaAvioes[i].pos.y,
-		//			100, 100,
-		//			hdcpic, 0, 0, SRCCOPY);
-		//	}
+			BitBlt(hdc, 0, 0, area.right, area.bottom,
+				hdcDB, 0, 0, SRCCOPY);
 
-		//	
-		//	//BitBlt(hdc, 0, 0, area.right, area.bottom,
-		//	//	hdcDB, 0, 0, SRCCOPY);
+			EndPaint(hWnd, &ps);
 
-		//	EndPaint(hWnd, &ps);
+			//// Pintar todos os aeroportos
+			//for (int i = 0; i < estruturaThread.dadosMem.BufCircular->nAeroportos; i++)
+			//{
+			//	BitBlt(hdcDB,
+			//		estruturaThread.dadosMem.BufAeroportos[i].pos.x, estruturaThread.dadosMem.BufAeroportos[i].pos.y,
+			//		100, 100,
+			//		hdcpic, 0, 0, SRCCOPY);
+			//}
 
-		//	break;
-		//}
+			//// Pintar todos os Aviões
+			//for (int i = 0; i < estruturaThread.nAviao; i++)
+			//{
+			//	BitBlt(hdcDB,
+			//		estruturaThread.listaAvioes[i].pos.x , estruturaThread.listaAvioes[i].pos.y,
+			//		100, 100,
+			//		hdcpic, 0, 0, SRCCOPY);
+			//}
+
+			
+			//BitBlt(hdc, 0, 0, area.right, area.bottom,
+			//	hdcDB, 0, 0, SRCCOPY);
+
+			EndPaint(hWnd, &ps);
+			return(DefWindowProc(hWnd, messg, wParam, lParam));
+			break;
+		}
 		default:
 			return(DefWindowProc(hWnd, messg, wParam, lParam));
 			break; 
