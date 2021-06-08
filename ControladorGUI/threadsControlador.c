@@ -1,47 +1,5 @@
 #include "threadsControlador.h"
-// ============== Funçaões Auxiliares =================
 
-void removeCliente(PDATAPIPES dadosPipes, HANDLE hPipe) {
-	for (int i = 0; i < TOTAL_PASSAGEIROS; i++) {
-		if (dadosPipes->clientes[i] == hPipe) {
-			dadosPipes->clientes[i] = NULL;
-			_tcscpy_s(dadosPipes->structClientes[i].nome, sizeof(dadosPipes->structClientes[i].nome) / sizeof(TCHAR), TEXT(""));
-			return;
-		}
-	}
-}
-
-void adicionaClientes(PDATAPIPES dadosPipes, HANDLE hPipe) {
-	for (int i = 0; i < TOTAL_PASSAGEIROS; i++) {
-		if (dadosPipes->clientes[i] == NULL) {
-			dadosPipes->clientes[i] = hPipe;
-			return;
-		}
-	}
-}
-
-int comunicaPassageiro(HANDLE hPipe, HANDLE evento, TCHAR msg[200]) {
-	DWORD cbWritten = 0;
-	BOOL fSucess = FALSE;
-	OVERLAPPED OverlWR = { 0 };
-	CLIENTE cliTemp;
-	_tcscpy_s(cliTemp.msg, sizeof(cliTemp.msg) / sizeof(TCHAR), msg);
-
-
-	ResetEvent(evento);
-	OverlWR.hEvent = evento;
-
-	fSucess = WriteFile(hPipe, &cliTemp, sizeof(CLIENTE), &cbWritten, &OverlWR);
-
-	WaitForSingleObject(evento, INFINITE);
-
-	GetOverlappedResult(hPipe, &OverlWR, &cbWritten, FALSE); //Sem wait
-
-	if (cbWritten < sizeof(CLIENTE))
-		_ftprintf(stderr, TEXT("Erro %d no writeFile\n"), GetLastError());
-
-	return 1;
-}
 
 // ==================== Threads =======================
 
@@ -233,4 +191,53 @@ DWORD WINAPI threadLeitura(LPVOID param) {
 	DisconnectNamedPipe(hPipe);
 	CloseHandle(hPipe);
 	return 1;
+}
+
+DWORD WINAPI ThreadPassageiros(LPVOID param) {
+	BOOL fConnected = FALSE;
+	DWORD dwThreadID = 0;
+	HANDLE hThread;
+	HANDLE hPipeTemp;
+
+	PDATAPIPES dadosPipe = (PDATAPIPES) param;
+
+	dadosPipe->hPipe = INVALID_HANDLE_VALUE;
+
+	if( (dadosPipe->WriteReady = CreateEvent(NULL, TRUE, FALSE, NULL)) == NULL){
+		_ftprintf(stderr, TEXT("Erro a criar o evento\n"));
+		return 1;
+	}
+
+	
+	iniciaClientes(dadosPipe);
+	
+	while(!dadosPipe->terminar){
+		hPipeTemp = CreateNamedPipe(PIPE_NAME,
+			PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED,
+			PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT,
+			PIPE_UNLIMITED_INSTANCES,
+			BUF_SIZE, BUF_SIZE,
+			5000, NULL);
+
+		if(hPipeTemp == INVALID_HANDLE_VALUE){
+			_ftprintf(stderr, TEXT("Erro a abrir o pipe\n"));
+			return -1; 
+		}
+
+		fConnected = ConnectNamedPipe(hPipeTemp, NULL) ? TRUE : (GetLastError() == ERROR_PIPE_CONNECTED);
+
+		dadosPipe->hPipe = hPipeTemp;
+		
+		if (fConnected) {
+			if ((hThread = CreateThread(NULL, 0, threadLeitura, dadosPipe, 0, dwThreadID)) == NULL) {
+				_ftprintf(stderr, TEXT("Erro a criar thread! A terminar...\n"));
+				return -1;
+			}
+			else{
+				CloseHandle(hThread);
+			}
+		}
+		else
+			CloseHandle(dadosPipe->hPipe);
+	}
 }

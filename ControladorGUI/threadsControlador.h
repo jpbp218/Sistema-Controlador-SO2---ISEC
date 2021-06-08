@@ -18,17 +18,10 @@
 #define TAMANHO 200
 #define TEMP_PING 3000
 
-#define TOTAL_PASSAGEIROS 10
+
 #define TAMANHO_MENSAGEM 512
 
-typedef struct {
-	int terminar;
-	HANDLE hPipe;
-	HANDLE WriteReady;
-	HANDLE clientes[TOTAL_PASSAGEIROS];
-	CLIENTE structClientes[TOTAL_PASSAGEIROS];
-	MemDados* dados;
-} DATAPIPES, * PDATAPIPES;
+
 
 /* Thread do teclado */
 typedef struct {
@@ -62,6 +55,7 @@ typedef struct {
 DWORD WINAPI threadLeitura(LPVOID param);
 DWORD WINAPI ThreadConsumidor(LPVOID param);
 DWORD WINAPI PingAviao(LPVOID param);
+DWORD WINAPI ThreadPassageiros(LPVOID param);
 
 #endif /*THREADSCONTROLADOR*/
 

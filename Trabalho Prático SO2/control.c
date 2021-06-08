@@ -65,7 +65,7 @@ DWORD WINAPI PingAviao(LPVOID param);
 int enviaMsg(DATAPIPES dadosPipes);
 void broadcastClientes(DATAPIPES dadosPipes);
 void iniciaClientes(PDATAPIPES dadosPipes);
-void removeCliente(DATAPIPES dadosPipes);
+void removeCliente(DATAPIPES dadosPipes,HANDLE hPipe);
 void adicionaClientes(PDATAPIPES dadosPipes, HANDLE hPipe);
 int comunicaPassageiro(HANDLE hPipe, HANDLE evento, TCHAR msg[200]);
 void listaPassageiros(PDATAPIPES dados);

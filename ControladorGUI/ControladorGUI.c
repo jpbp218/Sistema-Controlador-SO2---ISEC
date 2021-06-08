@@ -1,18 +1,11 @@
 #include "threadsControlador.h"
 #include "windowsx.h"
 
-void broadcastClientes(DATAPIPES dadosPipes);
-void iniciaClientes(PDATAPIPES dadosPipes);
-void adicionaClientes(PDATAPIPES dadosPipes, HANDLE hPipe);
-int comunicaPassageiro(HANDLE hPipe, HANDLE evento, TCHAR msg[200]);
-void listaPassageiros(PDATAPIPES dados);
-void broadcastClientes(DATAPIPES dadosPipes);
-void acrescentaPassageiroLista(PDATAPIPES dados, HWND hwndCtl);
-
 INT_PTR CALLBACK ver_passageiros(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK TrataEventos(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK dialog_regista_aeroporto(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK sobre_menu(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
+void acrescentaPassageiroLista(PDATAPIPES dados, HWND hwndCtl);
 
 #define MAX_LOADSTRING 100
 
@@ -267,6 +260,11 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 		return -1;
 	}
 
+	if ((hthread[contThread++] = CreateThread(NULL, 0, ThreadPassageiros, &dadosPipe, 0, NULL)) == NULL) { //Thread para fazer ping nos aviões e verificar que os mesmos ainda estão ativos
+		_tprintf(_T("Erro a criar thread de ping no controlador"));
+		return -1;
+	}
+
 	//todo Dialog box para isto _ftprintf(stdout, TEXT("Aviões: %d\nAeroportos: %d\n\n"), estruturaThread.valoresMax.numMaxAvioes, estruturaThread.valoresMax.numMaxAeroportos);
 
 	// ============================================================================
@@ -364,47 +362,47 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 			}
 			break;
 		}
-		case WM_PAINT: 
-		{
-			hdc = BeginPaint(hWnd, &ps);
+		//case WM_PAINT: 
+		//{
+		//	hdc = BeginPaint(hWnd, &ps);
 
-			// dbuffer
-			GetClientRect(hWnd, &area); // not ready during WM_CREATE
-			if (hdcDB == NULL) {
-				hdcDB = CreateCompatibleDC(hdc);
-				// linha abaixo: tazves fique desactualizada no primiro resize - ver isto
-				hbDB = CreateCompatibleBitmap(hdc, area.right, area.bottom);
-				SelectObject(hdcDB, hbDB);
-			}
+		//	// dbuffer
+		//	GetClientRect(hWnd, &area); // not ready during WM_CREATE
+		//	if (hdcDB == NULL) {
+		//		hdcDB = CreateCompatibleDC(hdc);
+		//		// linha abaixo: tazves fique desactualizada no primiro resize - ver isto
+		//		hbDB = CreateCompatibleBitmap(hdc, area.right, area.bottom);
+		//		SelectObject(hdcDB, hbDB);
+		//	}
 
-			FillRect(hdcDB, &area, (HBRUSH)GetStockObject(WHITE_BRUSH));
+		//	FillRect(hdcDB, &area, (HBRUSH)GetStockObject(WHITE_BRUSH));
 
-			// Pintar todos os aeroportos
-			for (int i = 0; i < estruturaThread.dadosMem.BufCircular->nAeroportos; i++)
-			{
-				BitBlt(hdcDB,
-					estruturaThread.dadosMem.BufAeroportos[i].pos.x, estruturaThread.dadosMem.BufAeroportos[i].pos.y,
-					100, 100,
-					hdcpic, 0, 0, SRCCOPY);
-			}
+		//	// Pintar todos os aeroportos
+		//	for (int i = 0; i < estruturaThread.dadosMem.BufCircular->nAeroportos; i++)
+		//	{
+		//		BitBlt(hdcDB,
+		//			estruturaThread.dadosMem.BufAeroportos[i].pos.x, estruturaThread.dadosMem.BufAeroportos[i].pos.y,
+		//			100, 100,
+		//			hdcpic, 0, 0, SRCCOPY);
+		//	}
 
-			// Pintar todos os Aviões
-			for (int i = 0; i < estruturaThread.nAviao; i++)
-			{
-				BitBlt(hdcDB,
-					estruturaThread.listaAvioes[i].pos.x , estruturaThread.listaAvioes[i].pos.y,
-					100, 100,
-					hdcpic, 0, 0, SRCCOPY);
-			}
+		//	// Pintar todos os Aviões
+		//	for (int i = 0; i < estruturaThread.nAviao; i++)
+		//	{
+		//		BitBlt(hdcDB,
+		//			estruturaThread.listaAvioes[i].pos.x , estruturaThread.listaAvioes[i].pos.y,
+		//			100, 100,
+		//			hdcpic, 0, 0, SRCCOPY);
+		//	}
 
-			
-			//BitBlt(hdc, 0, 0, area.right, area.bottom,
-			//	hdcDB, 0, 0, SRCCOPY);
+		//	
+		//	//BitBlt(hdc, 0, 0, area.right, area.bottom,
+		//	//	hdcDB, 0, 0, SRCCOPY);
 
-			EndPaint(hWnd, &ps);
+		//	EndPaint(hWnd, &ps);
 
-			break;
-		}
+		//	break;
+		//}
 		default:
 			return(DefWindowProc(hWnd, messg, wParam, lParam));
 			break; 
@@ -547,11 +545,3 @@ void acrescentaPassageiroLista(PDATAPIPES dados,HWND hwndCtl) {
 	}
 }
 
-void broadcastClientes(DATAPIPES dadosPipes) {
-	TCHAR msg[200];
-	_stprintf_s(msg, 199, TEXT("terminar"));
-	for (int i = 0; i < TOTAL_PASSAGEIROS; i++) {
-		if (dadosPipes.clientes[i] != 0)
-			comunicaPassageiro(dadosPipes.clientes[i], dadosPipes.structClientes[i].evento, msg);
-	}
-}
