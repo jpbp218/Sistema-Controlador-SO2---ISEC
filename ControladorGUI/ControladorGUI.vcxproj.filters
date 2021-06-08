@@ -58,6 +58,12 @@
     <Image Include="ControladorGUI.ico">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="icon1.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="icon-torre.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ControladorGUI.c">

@@ -1,17 +1,18 @@
 #include "threadsControlador.h"
 #include "windowsx.h"
 
-int enviaMsg(DATAPIPES dadosPipes);
 void broadcastClientes(DATAPIPES dadosPipes);
 void iniciaClientes(PDATAPIPES dadosPipes);
-void removeCliente(DATAPIPES dadosPipes);
 void adicionaClientes(PDATAPIPES dadosPipes, HANDLE hPipe);
 int comunicaPassageiro(HANDLE hPipe, HANDLE evento, TCHAR msg[200]);
 void listaPassageiros(PDATAPIPES dados);
+void broadcastClientes(DATAPIPES dadosPipes);
+void acrescentaPassageiroLista(PDATAPIPES dados, HWND hwndCtl);
 
-
+INT_PTR CALLBACK ver_passageiros(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK TrataEventos(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK dialog_regista_aeroporto(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
+INT_PTR CALLBACK sobre_menu(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 
 #define MAX_LOADSTRING 100
 
@@ -41,8 +42,9 @@ THREADCONS threadcons;
 	THREADCONS threadcons;
 } DATA, *PDATA;*/
 
+HWND hWnd;		// hWnd é o handler da janela, gerado mais abaixo por CreateWindow()
+
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nCmdShow) {
-	HWND hWnd;		// hWnd é o handler da janela, gerado mais abaixo por CreateWindow()
 	MSG lpMsg;		// MSG é uma estrutura definida no Windows para as mensagens
 	WNDCLASSEX wcApp;	// WNDCLASSEX é uma estrutura cujos membros servem para 
 			  // definir as características da classe da janela
@@ -101,8 +103,8 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 		WS_OVERLAPPEDWINDOW,	// Estilo da janela (WS_OVERLAPPED= normal)
 		CW_USEDEFAULT,		// Posição x pixels (default=à direita da última)
 		CW_USEDEFAULT,		// Posição y pixels (default=abaixo da última)
-		CW_USEDEFAULT,		// Largura da janela (em pixels)
-		CW_USEDEFAULT,		// Altura da janela (em pixels)
+		1000,		// Largura da janela (em pixels)
+		1000,		// Altura da janela (em pixels)
 		(HWND)HWND_DESKTOP,	// handle da janela pai (se se criar uma a partir de
 						// outra) ou HWND_DESKTOP se a janela for a primeira, 
 						// criada a partir do "desktop"
@@ -297,19 +299,31 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 	return((int)lpMsg.wParam);	// Retorna sempre o parâmetro wParam da estrutura lpMsg
 }
 
+HBITMAP hbpic;
+HDC hdcpic;
+HDC hdcDB = NULL;
+HBITMAP hbDB = NULL;
+
 LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam) {
 	//PDATA dados = (PDATA)GetWindowLongPtr(hWnd,0);
+	HDC hdc;
+	PAINTSTRUCT ps;
+	RECT area;
+
 	switch (messg) {
 		case WM_DESTROY:
-			// todo terminar as cenas
-
-			//// Espera que a thread do teclado termine
-			//WaitForMultipleObjects(contThread, hthread, TRUE, INFINITE);
-			//// Unmap das vistas
-			//fechaViewFile(&estruturaThread.dadosMem);
-			//// Fecha os handles da extrutura MemDados
-			//fechaHandleMem(&estruturaThread.dadosMem);
-			//free(threadcons.listaAvioes);
+			estruturaThread.pipes->terminar = 1;
+			DeleteFile(PIPE_NAME);
+			broadcastClientes(*estruturaThread.pipes);
+			encerraAvioes(&estruturaThread.dadosMem, estruturaThread.listaAvioes, *estruturaThread.nAviao);
+			estruturaThread.dadosMem.BufCircular->nAeroportos = -1;					// Coloca o número de aviões negativos para que o aviao.c para que eventos bloqueados possam ter conhecimento que controlador já não existe
+			estruturaThread.continua = 0;
+			SetEvent(estruturaThread.evento);						// Evento para ultrapassar todos os waits em que possa estar bloqueado
+			SetEvent(estruturaThread.sinc->eventoAceitaAviao[0]);	// Garante que todos os aviões suspensos possam avançar para o encerramento
+			for (int i = 0; i < TOTAL_PASSAGEIROS; i++) {
+				if (estruturaThread.pipes->clientes[i] == NULL)
+					SetEvent(estruturaThread.pipes->structClientes[i].eventoTermina);
+			}
 
 			PostQuitMessage(0);
 			break;
@@ -318,19 +332,77 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 			int wmId = LOWORD(wParam);
 			switch (wmId)
 			{
-			case ID_SAIR: // Botão Menu Sair
-				DestroyWindow(hWnd);
-				break;
 			case ID_AEROPORTO_CRIARNOVOAEROPORTO: // Botão Menu Aeroportos
 				DialogBox(hInstance, MAKEINTRESOURCE(IDD_CRIAR_AEROPORTO), hWnd, dialog_regista_aeroporto);
+				UpdateWindow(hWnd);
 				break;
 			case ID_PASSAGEIROS_VERPASSAGEIROSREGISTADOS: // Botão Menu Ver Todos os Passageiros
+				DialogBox(hInstance, MAKEINTRESOURCE(IDD_LISTA_PASSAGEIROS), hWnd, ver_passageiros);
 				break;
-			case ID_AVI32772: // Botão checked para aceitar ou não novos aviões
+			case ID_AVI32772:// Botão checked para aceitar ou não novos aviões
+			{
+				DWORD antes = CheckMenuItem(GetMenu(hWnd), ID_AVI32772, NULL);
+				if (antes == MF_CHECKED) // Suspende novos aviões
+				{
+					ResetEvent(estruturaThread.sinc->eventoAceitaAviao[0]);
+					CheckMenuItem(GetMenu(hWnd), ID_AVI32772, MF_UNCHECKED);
+				}
+				else // Aceita Novos Aviões
+				{
+					SetEvent(estruturaThread.sinc->eventoAceitaAviao[0]);
+					CheckMenuItem(GetMenu(hWnd), ID_AVI32772, MF_CHECKED);
+				}
 				break;
+			}
+			case ID_SOBRE: 
+			{
+				DialogBox(hInstance, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, sobre_menu);
+				break;
+			}
 			default:
 				return DefWindowProc(hWnd, messg, wParam, lParam);
 			}
+			break;
+		}
+		case WM_PAINT: 
+		{
+			hdc = BeginPaint(hWnd, &ps);
+
+			// dbuffer
+			GetClientRect(hWnd, &area); // not ready during WM_CREATE
+			if (hdcDB == NULL) {
+				hdcDB = CreateCompatibleDC(hdc);
+				// linha abaixo: tazves fique desactualizada no primiro resize - ver isto
+				hbDB = CreateCompatibleBitmap(hdc, area.right, area.bottom);
+				SelectObject(hdcDB, hbDB);
+			}
+
+			FillRect(hdcDB, &area, (HBRUSH)GetStockObject(WHITE_BRUSH));
+
+			// Pintar todos os aeroportos
+			for (int i = 0; i < estruturaThread.dadosMem.BufCircular->nAeroportos; i++)
+			{
+				BitBlt(hdcDB,
+					estruturaThread.dadosMem.BufAeroportos[i].pos.x, estruturaThread.dadosMem.BufAeroportos[i].pos.y,
+					100, 100,
+					hdcpic, 0, 0, SRCCOPY);
+			}
+
+			// Pintar todos os Aviões
+			for (int i = 0; i < estruturaThread.nAviao; i++)
+			{
+				BitBlt(hdcDB,
+					estruturaThread.listaAvioes[i].pos.x , estruturaThread.listaAvioes[i].pos.y,
+					100, 100,
+					hdcpic, 0, 0, SRCCOPY);
+			}
+
+			
+			//BitBlt(hdc, 0, 0, area.right, area.bottom,
+			//	hdcDB, 0, 0, SRCCOPY);
+
+			EndPaint(hWnd, &ps);
+
 			break;
 		}
 		default:
@@ -357,29 +429,47 @@ INT_PTR CALLBACK dialog_regista_aeroporto(HWND hDlg, UINT message, WPARAM wParam
 			
 			// Obtem e valida o nome do aeroporto
 			Edit_GetText(GetDlgItem(hDlg, IDC_EDIT1),&ap.nome,49);
-			if (existeNome(ap, estruturaThread.dadosMem.BufAeroportos, numAeroportos, estruturaThread.sinc)) {
-				Edit_SetText(GetDlgItem(hDlg, IDC_EDIT1), TEXT(""));
+			if (_tcslen(ap.nome) < 1) {
+				MessageBeep(MB_ICONWARNING);
 				return(INT_PTR)TRUE;
 			}
+
+			if (existeNome(ap, estruturaThread.dadosMem.BufAeroportos, numAeroportos, estruturaThread.sinc)) {
+				Edit_SetText(GetDlgItem(hDlg, IDC_EDIT1), TEXT(""));
+				MessageBeep(MB_ICONWARNING);
+				return(INT_PTR)TRUE;
+			}		
 
 			TCHAR bufNum[8];
 			// Obtem a posição x
 			Edit_GetText(GetDlgItem(hDlg, IDC_EDIT2), &bufNum, 7);
+			if (_tcslen(bufNum) < 1) {
+				MessageBeep(MB_ICONWARNING);
+				return(INT_PTR)TRUE;
+			}
 			ap.pos.x = _ttoi(bufNum);
 			// Obtem a posição y
 			Edit_GetText(GetDlgItem(hDlg, IDC_EDIT3), &bufNum, 7);
+			if (_tcslen(bufNum) < 1) {
+				MessageBeep(MB_ICONWARNING);
+				return(INT_PTR)TRUE;
+			}
 			ap.pos.y = _ttoi(bufNum);
 
 			// Valida coordenadas
 			if (existeAeroportoPerto(ap, estruturaThread.dadosMem.BufAeroportos, numAeroportos) || !verificaCordsAp(ap)) {
 				Edit_SetText(GetDlgItem(hDlg, IDC_EDIT2), TEXT(""));
 				Edit_SetText(GetDlgItem(hDlg, IDC_EDIT3), TEXT(""));
+				MessageBeep(MB_ICONWARNING);
 				return(INT_PTR)TRUE;
 			}
 
 			// Regista o aeroporto
 			criaAeroporto(ap, estruturaThread.dadosMem.BufAeroportos, &estruturaThread.dadosMem.BufCircular->nAeroportos, estruturaThread.sinc);
 
+			// Desativa botão de criar aeroportos caso o número máximo tenha sido atingido
+			if (estruturaThread.dadosMem.BufCircular->nAeroportos >= estruturaThread.valoresMax.numMaxAeroportos)
+				EnableMenuItem(GetSubMenu(GetMenu(hWnd), 0), ID_AEROPORTO_CRIARNOVOAEROPORTO, MF_DISABLED | MF_GRAYED);
 
 			EndDialog(hDlg, LOWORD(wParam));
 			return (INT_PTR)TRUE;
@@ -392,4 +482,76 @@ INT_PTR CALLBACK dialog_regista_aeroporto(HWND hDlg, UINT message, WPARAM wParam
 		break;
 	}
 	return (INT_PTR)FALSE;
+}
+
+INT_PTR CALLBACK sobre_menu(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	UNREFERENCED_PARAMETER(lParam);
+	switch (message)
+	{
+	case WM_INITDIALOG:
+	{
+		// Atualiza texto
+		TCHAR auxLabel[200];
+		// Aviões
+		_stprintf_s(auxLabel, sizeof(auxLabel) / sizeof(TCHAR), TEXT("Máximo de Aviões: %d"), estruturaThread.valoresMax.numMaxAvioes);
+		Static_SetText(GetDlgItem(hDlg, IDC_STATIC_AVIOES), auxLabel);
+		// Aeroportos
+		_stprintf_s(auxLabel, sizeof(auxLabel) / sizeof(TCHAR), TEXT("Máximo de Aeroportos: %d"), estruturaThread.valoresMax.numMaxAeroportos);
+		Static_SetText(GetDlgItem(hDlg, IDC_STATIC_AEROPORTOS), auxLabel);
+
+		return (INT_PTR)TRUE;
+	}
+	case WM_COMMAND:
+		if (LOWORD(wParam) == IDOK )// Criar um novo aeroporto
+		{
+			EndDialog(hDlg, LOWORD(wParam));
+			return (INT_PTR)TRUE;
+		}
+		break;
+	}
+	return (INT_PTR)FALSE;
+}
+
+INT_PTR CALLBACK ver_passageiros(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	UNREFERENCED_PARAMETER(lParam);
+	switch (message)
+	{
+	case WM_INITDIALOG:
+	{
+		ListBox_ResetContent(GetDlgItem(hDlg, IDC_LIST1)); // Dá Reset a toda a lista
+		TCHAR auxL[200];
+		acrescentaPassageiroLista(estruturaThread.pipes, GetDlgItem(hDlg, IDC_LIST1));
+
+		return (INT_PTR)TRUE;
+	}
+	case WM_COMMAND:
+		if (LOWORD(wParam) == IDOK)// Criar um novo aeroporto
+		{
+			EndDialog(hDlg, LOWORD(wParam));
+			return (INT_PTR)TRUE;
+		}
+		break;
+	}
+	return (INT_PTR)FALSE;
+}
+
+void acrescentaPassageiroLista(PDATAPIPES dados,HWND hwndCtl) {
+	TCHAR auxL[200];
+	for (int i = 0; i < TOTAL_PASSAGEIROS; i++) {
+		if (wcscmp(dados->structClientes[i].nome, TEXT("")) != 0) {
+			_stprintf_s(auxL, sizeof(auxL) / sizeof(TCHAR), TEXT("Nome: %s | Origem: %s | Destino: %s\n"), dados->structClientes[i].nome, dados->structClientes[i].aeroportoOrigem, dados->structClientes[i].aeroportoDestino);
+	      ListBox_InsertString(hwndCtl, i, auxL);
+		}
+	}
+}
+
+void broadcastClientes(DATAPIPES dadosPipes) {
+	TCHAR msg[200];
+	_stprintf_s(msg, 199, TEXT("terminar"));
+	for (int i = 0; i < TOTAL_PASSAGEIROS; i++) {
+		if (dadosPipes.clientes[i] != 0)
+			comunicaPassageiro(dadosPipes.clientes[i], dadosPipes.structClientes[i].evento, msg);
+	}
 }
