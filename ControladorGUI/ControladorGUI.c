@@ -1,5 +1,6 @@
 #include "threadsControlador.h"
 #include "windowsx.h"
+#include <math.h>
 
 INT_PTR CALLBACK ver_passageiros(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK TrataEventos(HWND, UINT, WPARAM, LPARAM);
@@ -25,9 +26,11 @@ Sinc sinc;
 THREADCONS threadcons;
 
 HICON plane, airport;
-HDC hdcpic;
+HDC hdcpic = NULL;
 HDC hdcDB = NULL;
-HBITMAP hbDB = NULL;
+HBITMAP hbDB = NULL,hold = NULL;
+HDC hdAirport = NULL,hdPlane = NULL;
+
 
 /*typedef struct{
 	DATAPIPES dadosPipe;
@@ -270,18 +273,18 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 		return -1;
 	}
 
-	// --- inicia pics
-	//plane = LoadImagemDisco(TEXT("C:\\Users\\João Pedro\\source\\repos\\Trabalho Prático SO2\\ControladorGUI\\plane.bmp"));  // Carrega Avião
-	//airport = LoadImagemDisco(TEXT("C:\\Users\\João Pedro\\source\\repos\\Trabalho Prático SO2\\ControladorGUI\\airport.bmp"));
+	// Inicia ICONS
 	plane = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_PLANE));
 	airport = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_AIRPORT));
 
-	DWORD errorIcon = GetLastError();
+	HDC hdcjan = GetDC(hWnd);
+	hdPlane = CreateCompatibleDC(hdcjan);
+	hdAirport = CreateCompatibleDC(hdcjan);
 
-	//HDC hdcjan = GetDC(hWnd);
-	//hdcpic = CreateCompatibleDC(hdcjan);
-	//SelectObject(hdcpic, plane);
-	//ReleaseDC(hWnd, hdcjan);
+	SelectObject(hdPlane, plane);
+	SelectObject(hdAirport, airport);
+
+	ReleaseDC(hWnd, hdcjan);
 
 
 	// ============================================================================
@@ -316,6 +319,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 
 POINT pt;
 
+
 LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lParam) {
 	//PDATA dados = (PDATA)GetWindowLongPtr(hWnd,0);
 	HDC hdc;
@@ -323,15 +327,15 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 	RECT area;
 
 	switch (messg) {
-		case WM_LBUTTONDOWN:
+		case WM_LBUTTONDOWN: // Quando clica no rato
 			pt.x = GET_X_LPARAM(lParam);
 			pt.y = GET_Y_LPARAM(lParam);
 			break;
-		case WM_DESTROY:
+		case WM_DESTROY: // Quando pede para fechar
 			estruturaThread.pipes->terminar = 1;
 			DeleteFile(PIPE_NAME);
 			broadcastClientes(*estruturaThread.pipes);
-			encerraAvioes(&estruturaThread.dadosMem, estruturaThread.listaAvioes, estruturaThread.nAviao);
+			encerraAvioes(&estruturaThread.dadosMem, estruturaThread.listaAvioes, *estruturaThread.nAviao);
 			estruturaThread.dadosMem.BufCircular->nAeroportos = -1;					// Coloca o número de aviões negativos para que o aviao.c para que eventos bloqueados possam ter conhecimento que controlador já não existe
 			estruturaThread.continua = 0;
 			SetEvent(estruturaThread.evento);						// Evento para ultrapassar todos os waits em que possa estar bloqueado
@@ -343,7 +347,7 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 
 			PostQuitMessage(0);
 			break;
-		case WM_COMMAND: 
+		case WM_COMMAND: // Menu
 		{
 			int wmId = LOWORD(wParam);
 			switch (wmId)
@@ -383,44 +387,42 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 		case WM_PAINT: 
 		{
 			hdc = BeginPaint(hWnd, &ps);
+			
+			// Double-Buffer
+			GetClientRect(hWnd, &area); // not ready during WM_CREATE
+			hdcDB = CreateCompatibleDC(hdc);
+			hbDB = CreateCompatibleBitmap(hdc, area.right, area.bottom);
+			hold = (HBITMAP)SelectObject(hdcDB, hbDB);
 
-			// dbuffer
-			//GetClientRect(hWnd, &area); // not ready during WM_CREATE
-			//if (hdcDB == NULL) {
-			//	hdcDB = CreateCompatibleDC(hdc);
-			//	// linha abaixo: tazves fique desactualizada no primiro resize - ver isto
-			//	hbDB = CreateCompatibleBitmap(hdc, area.right, area.bottom);
-			//	SelectObject(hdcDB, hbDB);
-			//}
-
-			//FillRect(hdcDB, &area, (HBRUSH)GetStockObject(GRAY_BRUSH));
-
-			//BitBlt(hdcDB,
-			//	500,500,
-			//	100, 100,
-			//	hdcpic, 0, 0, SRCCOPY);
-
-
-			//BitBlt(hdc, 0, 0, area.right, area.bottom,
-			//	hdcDB, 0, 0, SRCCOPY);
-
+			FillRect(hdcDB, &area, (HBRUSH)GetStockObject(WHITE_BRUSH));
 
 			// Pintar todos os Aviões
-			for (int i = 0; i < *estruturaThread.nAviao; i++)
-				DrawIcon(hdc, estruturaThread.listaAvioes[i].pos.x, estruturaThread.listaAvioes[i].pos.y, plane);
+			for (int i = 0; i < *estruturaThread.nAviao; i++) {
+				float x = round((float)estruturaThread.listaAvioes[i].pos.x / (float)1040 * (float)area.right);
+				float y = round((float)estruturaThread.listaAvioes[i].pos.y / (float)1040 * (float)area.bottom);
+				DrawIcon(hdcDB, x, y, plane);
+			}
 
 			// Pintar todos os aeroportos
-			for (int i = 0; i < estruturaThread.dadosMem.BufCircular->nAeroportos; i++)
-				DrawIcon(hdc, estruturaThread.dadosMem.BufAeroportos[i].pos.x, estruturaThread.dadosMem.BufAeroportos[i].pos.y, airport);
+			for (int i = 0; i < estruturaThread.dadosMem.BufCircular->nAeroportos; i++) {
+				float x = round((float)estruturaThread.dadosMem.BufAeroportos[i].pos.x / (float)1040 * (float)area.right);
+				float y = round((float)estruturaThread.dadosMem.BufAeroportos[i].pos.y / (float)1040 * (float)area.bottom);
+				DrawIcon(hdcDB, x, y, airport);
+			}
 			
-			//BitBlt(hdc, 0, 0, area.right, area.bottom,
-			//	hdcDB, 0, 0, SRCCOPY);
+			BitBlt(hdc, 0, 0, area.right, area.bottom,
+				hdcDB, 0, 0, SRCCOPY);
 			
+			SelectObject(hdcDB,hold);
+			DeleteObject(hbDB);
+			DeleteDC(hdcDB);
 			EndPaint(hWnd, &ps);
 			
 			return(DefWindowProc(hWnd, messg, wParam, lParam));
 			break;
 		}
+		case WM_ERASEBKGND:
+			break;
 		default:
 			return(DefWindowProc(hWnd, messg, wParam, lParam));
 			break; 

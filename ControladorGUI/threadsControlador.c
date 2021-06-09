@@ -78,13 +78,12 @@ DWORD WINAPI ThreadConsumidor(LPVOID param) {
 			ReleaseMutex(evento[1]);
 			SetEvent(evento[0]);
 			CloseHandle(evento[0]);
-			InvalidateRect(*dadosBuf->hWnd, NULL, TRUE);
 		}
 		else {
 			_ftprintf(stdout, TEXT("\nERRO"));
 			dadosBuf->control = 1;
 		}
-
+		InvalidateRect(*dadosBuf->hWnd, NULL, TRUE);
 		dadosBuf->dados->BufCircular->out = (dadosBuf->dados->BufCircular->out + 1) % TAM;
 		ReleaseSemaphore(dadosBuf->dados->semAviao, 1, NULL);
 	}
@@ -110,7 +109,8 @@ DWORD WINAPI PingAviao(LPVOID param) { // Tenta comunicar com todos os aviões re
 						SetEvent(dados->pipes->structClientes[i].eventoTermina);
 					}
 				}
-				_ftprintf(stdout, TEXT("\n\nMayday Mayday, o avião %d deixou de efetuar contato!\n\n"), dados->listaAvioes[i].id);
+				//todo Mandar alerta se ativado
+				InvalidateRect(*dados->hWnd, NULL, TRUE);
 				apagaAviao(i, &dados->nAviao, dados->listaAvioes);
 				ReleaseSemaphore(dados->sinc->eventoAceitaAviao[1], 1, NULL);
 			}
