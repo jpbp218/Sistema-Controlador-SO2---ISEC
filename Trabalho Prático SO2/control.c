@@ -91,6 +91,7 @@ DWORD WINAPI ThreadConsumidor(LPVOID param) {
 				if(wcscmp(aux.partida.nome, dadosBuf->pipes->structClientes[i].aeroportoOrigem) == 0 && 
 					wcscmp(aux.destino.nome, dadosBuf->pipes->structClientes[i].aeroportoDestino) == 0) {
 					dadosBuf->pipes->structClientes[i].idAviao = aux.id;
+					dadosBuf->pipes->structClientes[i].flagViagem = 1;
 					TCHAR msgTemp[200];
 					_stprintf_s(msgTemp, sizeof(msgTemp) / sizeof(TCHAR), TEXT("Embarcou no avião %d com destino a %s"), aux.id, aux.destino.nome);
 					comunicaPassageiro(dadosBuf->pipes->clientes[i], dadosBuf->pipes->structClientes[i].evento, msgTemp);
@@ -478,7 +479,7 @@ void broadcastClientes(DATAPIPES dadosPipes){
 void iniciaClientes(PDATAPIPES dadosPipes){
 
 	for (int i = 0; i < TOTAL_PASSAGEIROS; i++){
-		
+		dadosPipes->structClientes[i].flagViagem = 0;
 		dadosPipes->clientes[i] = NULL;
 		_tcscpy_s(dadosPipes->structClientes[i].nome, 49, TEXT(""));
 	}

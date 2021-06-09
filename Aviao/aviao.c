@@ -129,6 +129,7 @@ int _tmain(int argc, LPTSTR argv[])
 	dadosThread.sinc = sinc;
 	dadosThread.thisAviao = &dados;
 	wcscpy_s(dados.partida.nome,49, argv[3]);
+	dados.numPassagBord = 0;
 
 	_ftprintf(stdout, TEXT("[%04d] A aguardar que se possa conectar...\n\n"), dados.id);
 

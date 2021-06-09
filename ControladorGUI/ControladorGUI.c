@@ -325,11 +325,82 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 	HDC hdc;
 	PAINTSTRUCT ps;
 	RECT area;
+	RECT click;
 
 	switch (messg) {
 		case WM_LBUTTONDOWN: // Quando clica no rato
+			GetClientRect(hWnd, &area);
 			pt.x = GET_X_LPARAM(lParam);
 			pt.y = GET_Y_LPARAM(lParam);
+			for (int i = 0; i < estruturaThread.dadosMem.BufCircular->nAeroportos; i++) {
+				float x = round((float)estruturaThread.dadosMem.BufAeroportos[i].pos.x / (float)1040 * (float)area.right);
+				float y = round((float)estruturaThread.dadosMem.BufAeroportos[i].pos.y / (float)1040 * (float)area.bottom);
+				click.right = x + 30;
+				click.left = x - 30;
+				click.top = y + 30;
+				click.bottom = y - 30;
+				if (pt.x < click.right && pt.x > click.left && pt.y < click.top && pt.y > click.bottom)
+				{
+					estruturaThread.dadosMem.BufAeroportos[i].numAvioes = 0;
+					estruturaThread.dadosMem.BufAeroportos[i].numPass = 0;
+					for (int j = 0; j < *estruturaThread.nAviao; j++) 
+						if(estruturaThread.listaAvioes[j].pos.x == estruturaThread.dadosMem.BufAeroportos[i].pos.x && estruturaThread.listaAvioes[j].pos.y == estruturaThread.dadosMem.BufAeroportos[i].pos.y)
+							estruturaThread.dadosMem.BufAeroportos[i].numAvioes++;
+						
+					for (int j = 0; j < TOTAL_PASSAGEIROS; j++) 
+						if(estruturaThread.pipes->structClientes[j].flagViagem == 0 && 
+							wcscmp(estruturaThread.pipes->structClientes[j].aeroportoOrigem, estruturaThread.dadosMem.BufAeroportos[i].nome) == 0)
+							estruturaThread.dadosMem.BufAeroportos[i].numPass++;	
+					
+					TCHAR auxApText[100];
+					_stprintf_s(auxApText, sizeof(auxApText) / sizeof(TCHAR), 
+						TEXT("Aviões: %d\nPassageiros: %d"), 
+						estruturaThread.dadosMem.BufAeroportos[i].numAvioes, 
+						estruturaThread.dadosMem.BufAeroportos[i].numPass);
+
+					MessageBox(
+						hWnd,
+						auxApText,
+						estruturaThread.dadosMem.BufAeroportos[i].nome,
+						NULL);
+
+					break;
+				}
+			}
+			break;
+		case WM_MOUSEMOVE:
+			GetClientRect(hWnd, &area);
+			pt.x = GET_X_LPARAM(lParam);
+			pt.y = GET_Y_LPARAM(lParam);
+			for (int i = 0; i < *estruturaThread.nAviao; i++) {
+				if (!isAeroporto(&estruturaThread.dadosMem, estruturaThread.listaAvioes[i].pos))
+				{
+					float x = round((float)estruturaThread.listaAvioes[i].pos.x / (float)1040 * (float)area.right);
+					float y = round((float)estruturaThread.listaAvioes[i].pos.y / (float)1040 * (float)area.bottom);
+					click.right = x + 30;
+					click.left = x - 30;
+					click.top = y + 30;
+					click.bottom = y - 30;
+					if (pt.x < click.right && pt.x > click.left && pt.y < click.top && pt.y > click.bottom)
+					{
+						TCHAR auxAText[200];
+						_stprintf_s(auxAText, sizeof(auxAText) / sizeof(TCHAR),
+							TEXT("ID: %d\nAeroporto Origem: %s\nAeoporto Destino: %s\nPassageiros: %d\nVelocidade: %d unidades/segundo"),
+							estruturaThread.listaAvioes[i].id,
+							estruturaThread.listaAvioes[i].partida.nome,
+							estruturaThread.listaAvioes[i].destino.nome,
+							estruturaThread.listaAvioes[i].numPassagBord,
+							estruturaThread.listaAvioes[i].velocidade);
+
+						MessageBox(
+							hWnd,
+							auxAText,
+							estruturaThread.listaAvioes[i].id,
+							NULL);
+						break;
+					}
+				}
+			}
 			break;
 		case WM_DESTROY: // Quando pede para fechar
 			estruturaThread.pipes->terminar = 1;
@@ -481,6 +552,9 @@ INT_PTR CALLBACK dialog_regista_aeroporto(HWND hDlg, UINT message, WPARAM wParam
 				MessageBeep(MB_ICONWARNING);
 				return(INT_PTR)TRUE;
 			}
+
+			ap.numAvioes = 0;
+			ap.numPass = 0;
 
 			// Regista o aeroporto
 			criaAeroporto(ap, estruturaThread.dadosMem.BufAeroportos, &estruturaThread.dadosMem.BufCircular->nAeroportos, estruturaThread.sinc);

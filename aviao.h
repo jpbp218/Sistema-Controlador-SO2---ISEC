@@ -11,6 +11,8 @@ typedef struct {
 typedef struct {
 	TCHAR nome[50];			// Nome do aeroporto
 	Coordenadas pos;		// Posição do aeroporto
+	int numAvioes;			// Quantidade atual de aviões
+	int numPass;			// Quantidade atual de Passageiros
 } Aeroporto;
 
 typedef struct {
@@ -21,6 +23,7 @@ typedef struct {
 	Aeroporto partida;		// Aeroporto de onde o avião iniciou a sua viagem
 	Aeroporto destino;		// Aeroporto de onde o avião se pertende deslocar
 	TCHAR msg[50];			// Mensagem de controlo para comunicação com o controlador
+	int numPassagBord;		// Número de passageiros a bordo
 	int flagChegada;		// Flag de controlo para avisar o controlador que chegou ao seu destino
 } Aviao;
 

@@ -165,7 +165,7 @@ void broadcastClientes(DATAPIPES dadosPipes){
 void iniciaClientes(PDATAPIPES dadosPipes){
 
 	for (int i = 0; i < TOTAL_PASSAGEIROS; i++){
-		
+		dadosPipes->structClientes[i].flagViagem = 0;
 		dadosPipes->clientes[i] = NULL;
 		_tcscpy_s(dadosPipes->structClientes[i].nome, 49, TEXT(""));
 	}

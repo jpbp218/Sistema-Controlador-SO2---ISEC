@@ -15,6 +15,7 @@ typedef struct {
 	int tempoEspera;
 	HANDLE evento;
 	HANDLE eventoTermina;
+	int flagViagem;
 }CLIENTE, * PCLIENTE;
 
 
