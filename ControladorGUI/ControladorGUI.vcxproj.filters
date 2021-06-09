@@ -64,6 +64,18 @@
     <Image Include="icon-torre.ico">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="airport.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="plane.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="airport.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="plane.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ControladorGUI.c">

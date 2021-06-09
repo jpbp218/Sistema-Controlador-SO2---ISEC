@@ -161,9 +161,13 @@
     <ResourceCompile Include="ControladorGUI.rc" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="airport.bmp" />
+    <Image Include="airport.ico" />
     <Image Include="ControladorGUI.ico" />
     <Image Include="icon-torre.ico" />
     <Image Include="icon1.ico" />
+    <Image Include="plane.bmp" />
+    <Image Include="plane.ico" />
     <Image Include="small.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

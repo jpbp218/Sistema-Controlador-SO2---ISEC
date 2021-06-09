@@ -50,6 +50,7 @@ typedef struct {
 	//Controlo do ciclo
 	int control;
 	char* flagMostraA;
+	HWND * hWnd;
 } THREADCONS, * PTHREADCONS;
 
 DWORD WINAPI threadLeitura(LPVOID param);

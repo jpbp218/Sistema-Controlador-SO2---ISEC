@@ -78,6 +78,7 @@ DWORD WINAPI ThreadConsumidor(LPVOID param) {
 			ReleaseMutex(evento[1]);
 			SetEvent(evento[0]);
 			CloseHandle(evento[0]);
+			InvalidateRect(*dadosBuf->hWnd, NULL, TRUE);
 		}
 		else {
 			_ftprintf(stdout, TEXT("\nERRO"));

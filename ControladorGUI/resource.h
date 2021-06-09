@@ -16,6 +16,9 @@
 #define IDI_TORRE                       135
 #define IDD_                            136
 #define IDD_LISTA_PASSAGEIROS           136
+#define IDI_AIRPORT                     137
+#define IDI_                            138
+#define IDI_PLANE                       138
 #define IDC_EDIT1                       1000
 #define IDC_EDIT2                       1001
 #define IDC_EDIT3                       1002
@@ -35,7 +38,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        137
+#define _APS_NEXT_RESOURCE_VALUE        139
 #define _APS_NEXT_COMMAND_VALUE         32777
 #define _APS_NEXT_CONTROL_VALUE         1007
 #define _APS_NEXT_SYMED_VALUE           110
