@@ -184,6 +184,15 @@ void removeCliente(PDATAPIPES dadosPipes, HANDLE hPipe) {
 	for(int i = 0; i < TOTAL_PASSAGEIROS; i++){
 		if(dadosPipes->clientes[i] == hPipe ){
 			dadosPipes->clientes[i] = NULL;
+			dadosPipes->structClientes[i].evento = NULL;
+			dadosPipes->structClientes[i].eventoTermina = NULL;
+			dadosPipes->structClientes[i].flagViagem = 0;
+			dadosPipes->structClientes[i].idAviao = -1;
+			dadosPipes->structClientes[i].tempoEspera = 0;
+
+			_tcscpy_s(dadosPipes->structClientes[i].aeroportoDestino,sizeof(dadosPipes->structClientes[i].nome)/sizeof(TCHAR),TEXT(""));
+			_tcscpy_s(dadosPipes->structClientes[i].aeroportoOrigem,sizeof(dadosPipes->structClientes[i].nome)/sizeof(TCHAR),TEXT(""));
+			_tcscpy_s(dadosPipes->structClientes[i].msg,sizeof(dadosPipes->structClientes[i].nome)/sizeof(TCHAR),TEXT(""));
 			_tcscpy_s(dadosPipes->structClientes[i].nome,sizeof(dadosPipes->structClientes[i].nome)/sizeof(TCHAR),TEXT(""));
 			return;
 		}

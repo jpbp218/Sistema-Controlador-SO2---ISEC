@@ -277,15 +277,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 	plane = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_PLANE));
 	airport = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_AIRPORT));
 
-	HDC hdcjan = GetDC(hWnd);
-	hdPlane = CreateCompatibleDC(hdcjan);
-	hdAirport = CreateCompatibleDC(hdcjan);
-
-	SelectObject(hdPlane, plane);
-	SelectObject(hdAirport, airport);
-
-	ReleaseDC(hWnd, hdcjan);
-
 
 	// ============================================================================
 	// 4. Mostrar a janela
@@ -383,6 +374,11 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 					click.bottom = y - 30;
 					if (pt.x < click.right && pt.x > click.left && pt.y < click.top && pt.y > click.bottom)
 					{
+						estruturaThread.listaAvioes[i].numPassagBord = 0;
+						for (int j = 0; j < TOTAL_PASSAGEIROS; j++)
+							if (estruturaThread.pipes->structClientes[j].idAviao == estruturaThread.listaAvioes[i].id)
+								estruturaThread.listaAvioes[i].numPassagBord++;		
+
 						TCHAR auxAText[200];
 						_stprintf_s(auxAText, sizeof(auxAText) / sizeof(TCHAR),
 							TEXT("ID: %d\nAeroporto Origem: %s\nAeoporto Destino: %s\nPassageiros: %d\nVelocidade: %d unidades/segundo"),

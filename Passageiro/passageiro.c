@@ -15,7 +15,8 @@ DWORD WINAPI Temporizador(LPVOID param);
 typedef struct {
 	char* termina;
 	HANDLE hPipe;
-	HANDLE eventoTermina;
+	HANDLE eventoTerminaTemporizador;
+	HANDLE eventoTerminaPassageiro;
 } TDATA, *PTDATA;
 
 typedef struct {
@@ -64,12 +65,17 @@ int _tmain(int argc, LPTSTR argv[])
 	wcscpy_s(cli.aeroportoDestino, sizeof(cli.aeroportoDestino)/sizeof(TCHAR), argv[2]);
 	wcscpy_s(cli.nome, sizeof(cli.nome)/sizeof(TCHAR), argv[3]);
 
-	threadInfo.eventoTermina = CreateEvent(
+	//TCHAR nomeEvento[200];
+	//_stprintf_s(nomeEvento, sizeof(nomeEvento) / sizeof(TCHAR), TEXT("EventoTermina%d"), GetProcessId());
+
+	threadInfo.eventoTerminaTemporizador = CreateEvent(
 		NULL,
-		TRUE,
+		FALSE,
 		FALSE,
 		NULL
 	);
+
+	threadInfo.eventoTerminaPassageiro = CreateEvent(NULL,FALSE,FALSE,NULL);
 
 	hPipe = CreateFile(
 		PIPE_NAME,
@@ -190,7 +196,7 @@ int _tmain(int argc, LPTSTR argv[])
 		if (flagTermina)
 			break;
 		if (wcscmp(buff, TEXT("terminar")) == 0) {
-			SetEvent(threadInfo.eventoTermina);
+			SetEvent(threadInfo.eventoTerminaPassageiro);
 			_stprintf_s(cli.msg, 49, TEXT("terminar"));
 			ZeroMemory(&OverlWr, sizeof(OverlWr));
 			ResetEvent(WriteReady);
@@ -254,7 +260,7 @@ DWORD WINAPI ThreadComunicacao(LPVOID param) {
 	}
 
 	arrayHandles[0] = ReadReady;
-	arrayHandles[1] = dados->eventoTermina;
+	arrayHandles[1] = dados->eventoTerminaPassageiro;
 
 	while (!*dados->termina)
 	{
@@ -293,7 +299,7 @@ DWORD WINAPI ThreadComunicacao(LPVOID param) {
 		}
 		else if (wcsncmp(FromControl.msg, TEXT("Embarcou"), 8) == 0)
 		{
-			SetEvent(dados->eventoTermina);
+			SetEvent(dados->eventoTerminaTemporizador);
 			_tprintf(FromControl.msg);
 			_tprintf(TEXT("\n"));
 		}
@@ -317,7 +323,7 @@ DWORD WINAPI Temporizador(LPVOID param) {
 	liDueTime.LowPart = (DWORD)(qwDueTime & 0xFFFFFFFF);
 	liDueTime.HighPart = (LONG)(qwDueTime >> 32);
 
-	eventos[0] = dados->threadDados->eventoTermina;
+	eventos[0] = dados->threadDados->eventoTerminaTemporizador;
 	eventos[1] = CreateWaitableTimer(NULL, TRUE, NULL);
 
 	if (eventos[1] == NULL)
@@ -339,7 +345,7 @@ DWORD WINAPI Temporizador(LPVOID param) {
 		
 
 	*dados->threadDados->termina = 1;
-	SetEvent(dados->threadDados->eventoTermina);
+	SetEvent(dados->threadDados->eventoTerminaPassageiro);
 
 	_stprintf_s(dados->cli->msg, sizeof(dados->cli->msg) / sizeof(TCHAR), TEXT("terminar"));
 	ZeroMemory(dados->OverlWr, sizeof(*dados->OverlWr));

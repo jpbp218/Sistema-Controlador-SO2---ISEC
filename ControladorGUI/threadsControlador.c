@@ -19,7 +19,6 @@ DWORD WINAPI ThreadConsumidor(LPVOID param) {
 			dadosBuf->listaAvioes[dadosBuf->nAviao++] = aux;
 		}
 		else if (wcscmp(aux.msg, TEXT("embarcar")) == 0) {
-
 			for (int i = 0, auxPassageiros = 0; i < TOTAL_PASSAGEIROS && auxPassageiros < aux.cap_max; i++) {
 				if (wcscmp(aux.partida.nome, dadosBuf->pipes->structClientes[i].aeroportoOrigem) == 0 &&
 					wcscmp(aux.destino.nome, dadosBuf->pipes->structClientes[i].aeroportoDestino) == 0) {
@@ -61,7 +60,7 @@ DWORD WINAPI ThreadConsumidor(LPVOID param) {
 					if (dadosBuf->pipes->structClientes[i].idAviao == aux.id) {
 						TCHAR msgTemp[200];
 						_stprintf_s(msgTemp, sizeof(msgTemp) / sizeof(TCHAR), TEXT("Deslocou-se para (%d,%d)"), aux.pos.x, aux.pos.y);
-						comunicaPassageiro(dadosBuf->pipes->clientes[i], dadosBuf->pipes->structClientes[i].evento, msgTemp);
+						comunicaPassageiro(dadosBuf->pipes->clientes[i], dadosBuf->pipes->structClientes[i].evento, msgTemp); // todo fica preso aqui
 					}
 				}
 				if (*dadosBuf->flagMostraA)
@@ -170,7 +169,7 @@ DWORD WINAPI threadLeitura(LPVOID param) {
 						_tcscpy_s(dadosPipe->structClientes[i].aeroportoDestino, sizeof(dadosPipe->structClientes[i].aeroportoDestino) / sizeof(TCHAR), Pedido.aeroportoDestino);
 						dadosPipe->structClientes[i].evento = eventoEscrita;
 						TCHAR nameEvento[50];
-						_stprintf_s(nameEvento, sizeof(nameEvento) / sizeof(TCHAR), TEXT("SALTAREAD%d"), dadosPipe->clientes[i]);
+						_stprintf_s(nameEvento, sizeof(nameEvento) / sizeof(TCHAR), TEXT("SALTAREAD%p"), dadosPipe->clientes[i]);
 						dadosPipe->structClientes[i].eventoTermina = eventos[1] = CreateEvent(NULL, TRUE, FALSE, nameEvento);
 						flag = 0;
 					}
