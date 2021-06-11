@@ -17,6 +17,19 @@ DWORD WINAPI ThreadConsumidor(LPVOID param) {
 		if ((i = verificaAviao(dadosBuf->nAviao, dadosBuf->listaAvioes, aux.id)) == -1 && wcscmp(aux.msg, TEXT("embarcar")) != 0) { // Regista um novo avião que se conectou
 			_ftprintf(stdout, TEXT("\n\nA registar novo avião! %d\n\nComando:"), aux.id);
 			dadosBuf->listaAvioes[dadosBuf->nAviao++] = aux;
+			if (*dadosBuf->flagMostraA)
+			{
+				TCHAR auxAText[100];
+				_stprintf_s(auxAText, sizeof(auxAText) / sizeof(TCHAR),
+					TEXT("Novo avião registado no sistema com o identificador %d e no aeroporto %s!"),
+					aux.id, aux.partida.nome);
+
+				MessageBox(
+					*dadosBuf->hWnd,
+					auxAText,
+					TEXT("Novo Avião"),
+					MB_OK | MB_ICONINFORMATION);
+			}
 		}
 		else if (wcscmp(aux.msg, TEXT("embarcar")) == 0) {
 			for (int i = 0, auxPassageiros = 0; i < TOTAL_PASSAGEIROS && auxPassageiros < aux.cap_max; i++) {
@@ -33,7 +46,16 @@ DWORD WINAPI ThreadConsumidor(LPVOID param) {
 		}
 		else if (i >= 0) {  // Atualiza as coordenadas de um avião e verifica se são válidas ou não
 			if (aux.flagChegada == 1 && *dadosBuf->flagMostraA == 1) {
-				_ftprintf(stdout, TEXT("\n\nO avião %d chegou ao aeroporto de destino!\n\nComando:"), aux.id);
+				TCHAR auxAText[100];
+				_stprintf_s(auxAText, sizeof(auxAText) / sizeof(TCHAR),
+					TEXT("O Avião %d aterrou no aeroporto %s com sucesso!"),
+					aux.id, aux.destino.nome);
+
+				MessageBox(
+					*dadosBuf->hWnd,
+					auxAText,
+					TEXT("Chegou ao Destino"),
+					MB_OK | MB_ICONINFORMATION);
 			}
 
 			for (int i = 0; i < TOTAL_PASSAGEIROS && aux.flagChegada == 1; i++) {
@@ -63,13 +85,21 @@ DWORD WINAPI ThreadConsumidor(LPVOID param) {
 						comunicaPassageiro(dadosBuf->pipes->clientes[i], dadosBuf->pipes->structClientes[i].evento, msgTemp); // todo fica preso aqui
 					}
 				}
-				if (*dadosBuf->flagMostraA)
-					_ftprintf(stdout, TEXT("\n[%04d] Deslocou-se para %d,%d\n"), aux.id, aux.pos.x, aux.pos.y);
 			}
 			else {
 				_stprintf_s(msgResposta.mensagem, TAM_MENSAGEM, TEXT("NAO_PERMITIDO")); // Responde ao avião que a posição que se pertende deslocar está ocupada e deve efetuar um desvio
-				if (*dadosBuf->flagMostraA)
-					_ftprintf(stdout, TEXT("\n[%04d] Obstáculo detetado, a efetuar desvio...\n"), aux.id);
+				if (*dadosBuf->flagMostraA) {
+					TCHAR auxAText[100];
+					_stprintf_s(auxAText, sizeof(auxAText) / sizeof(TCHAR),
+						TEXT("Atenção! O Avião com identificador %d vai efetuar um desvio de um obstáculo!"),
+						aux.id);
+
+					MessageBox(
+						*dadosBuf->hWnd,
+						auxAText,
+						TEXT("Alerta"),
+						MB_OK | MB_ICONWARNING);
+				}
 			}
 
 
@@ -109,7 +139,19 @@ DWORD WINAPI PingAviao(LPVOID param) { // Tenta comunicar com todos os aviões re
 						SetEvent(dados->pipes->structClientes[i].eventoTermina);
 					}
 				}
-				//todo Mandar alerta se ativado
+				if (*dados->flagMostraA)
+				{
+					TCHAR auxAText[100];
+					_stprintf_s(auxAText, sizeof(auxAText) / sizeof(TCHAR),
+						TEXT("Avião %d deixou de efetuar contacto!"),
+						dados->listaAvioes[i].id);
+
+					MessageBox(
+						*dados->hWnd,
+						auxAText,
+						TEXT("Alerta"),
+						MB_OK | MB_ICONWARNING);
+				}
 				InvalidateRect(*dados->hWnd, NULL, TRUE);
 				apagaAviao(i, &dados->nAviao, dados->listaAvioes);
 				ReleaseSemaphore(dados->sinc->eventoAceitaAviao[1], 1, NULL);

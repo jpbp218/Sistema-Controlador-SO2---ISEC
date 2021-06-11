@@ -441,6 +441,20 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 				}
 				break;
 			}
+			case ID_AVI32777: // Botão checked para mostrar alertas importantes sobre os aviões
+				DWORD antes = CheckMenuItem(GetMenu(hWnd), ID_AVI32777, NULL);
+				if (antes == MF_CHECKED) // Desliga os alertas
+				{
+					*estruturaThread.flagMostraA = 0;
+					CheckMenuItem(GetMenu(hWnd), ID_AVI32777, MF_UNCHECKED);
+				}
+				else // Liga alertas sobre aviões
+				{
+					*estruturaThread.flagMostraA = 1;
+					CheckMenuItem(GetMenu(hWnd), ID_AVI32777, MF_CHECKED);
+				}
+				break;
+				break;
 			case ID_SOBRE: 
 			{
 				DialogBox(hInstance, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, sobre_menu);
@@ -456,12 +470,12 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 			hdc = BeginPaint(hWnd, &ps);
 			
 			// Double-Buffer
-			GetClientRect(hWnd, &area); // not ready during WM_CREATE
+			GetClientRect(hWnd, &area);
 			hdcDB = CreateCompatibleDC(hdc);
 			hbDB = CreateCompatibleBitmap(hdc, area.right, area.bottom);
 			hold = (HBITMAP)SelectObject(hdcDB, hbDB);
 
-			FillRect(hdcDB, &area, (HBRUSH)GetStockObject(WHITE_BRUSH));
+			FillRect(hdcDB, &area, (HBRUSH)GetStockObject(WHITE_BRUSH)); // Pintar todo o ecrã de branco
 
 			// Pintar todos os Aviões
 			for (int i = 0; i < *estruturaThread.nAviao; i++) {
