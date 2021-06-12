@@ -165,6 +165,9 @@ DWORD WINAPI PingAviao(LPVOID param) { // Tenta comunicar com todos os avi�es 
 			{
 				for (int i = 0; i < TOTAL_PASSAGEIROS; i++) {
 					if (dados->pipes->structClientes[i].idAviao == dados->listaAvioes[i].id) {
+						TCHAR msg[200];
+						_stprintf_s(msg, 199, TEXT("desapareceu"));
+						comunicaPassageiro(dados->pipes->clientes[i], dados->pipes->structClientes[i].evento, msg);
 						SetEvent(dados->pipes->structClientes[i].eventoTermina);
 					}
 				}
@@ -260,6 +263,7 @@ DWORD WINAPI threadLeitura(LPVOID param) {
 		}
 	}
 
+	
 	removeCliente(dadosPipe, hPipe);
 	FlushFileBuffers(hPipe);
 	DisconnectNamedPipe(hPipe);

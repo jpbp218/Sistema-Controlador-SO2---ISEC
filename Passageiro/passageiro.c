@@ -296,6 +296,10 @@ DWORD WINAPI ThreadComunicacao(LPVOID param) {
 			_tprintf(TEXT("Chegou ao seu destino!\n\nEscreva \"fim\" para terminar...\n\n"));
 			*dados->termina = 1;
 			return 1;
+		} else if (wcscmp(FromControl.msg, TEXT("desapareceu")) == 0) {
+			_tprintf(TEXT("MayDay MayDay, a saltar de paraquedas, o avião vai-se despenhar!\n\nEscreva \"fim\" para terminar...\n\n"));
+			*dados->termina = 1;
+			return 1;
 		}
 		else if (wcsncmp(FromControl.msg, TEXT("Embarcou"), 8) == 0)
 		{
