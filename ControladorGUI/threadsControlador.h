@@ -16,8 +16,7 @@
 
 #define BUF_SIZE 2048
 #define TAMANHO 200
-#define TEMP_PING 3000
-
+#define TEMP_PING -30000000LL
 
 #define TAMANHO_MENSAGEM 512
 

@@ -33,14 +33,27 @@ HDC hdAirport = NULL,hdPlane = NULL;
 
 
 /*typedef struct{
-	DATAPIPES dadosPipe;
-	HANDLE hthread[4];
-	HANDLE hPipeTemp;
-	int contThread;
-	THREADTEC estruturaThread;
-	MemDados sem;
-	Sinc sinc;
-	THREADCONS threadcons;
+	TCHAR szProgName[] = TEXT("Controlador");
+HINSTANCE hInstance;
+WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
+WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
+
+// Variáveis Globais
+DATAPIPES dadosPipe;
+HANDLE hthread[4];
+HANDLE hPipeTemp;
+int contThread = 0;
+THREADTEC estruturaThread;
+MemDados sem;
+Sinc sinc;
+THREADCONS threadcons;
+
+HICON plane, airport;
+HDC hdcpic = NULL;
+HDC hdcDB = NULL;
+HBITMAP hbDB = NULL,hold = NULL;
+HDC hdAirport = NULL,hdPlane = NULL;
+HWND hWnd;		// hWnd é o handler da janela, gerado mais abaixo por CreateWindow()
 } DATA, *PDATA;*/
 
 HWND hWnd;		// hWnd é o handler da janela, gerado mais abaixo por CreateWindow()
@@ -88,11 +101,41 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 	if (!RegisterClassEx(&wcApp))
 		return(0);
 
+
 	//todo Definir a estrutura com os dados necessários
 	//wcApp.cbWndExtra = sizeof(DADOS *); DADOS -> Estrutura dos dados necessários 
 	//DADOS dados -> Definir a estrutura e inicializar os seus dados necessários
 	//SetWindowLongPtr(hWnd,0, (LONG_PTR)& dados); -> Definir os dados
 	//DADOS * pont = (DADOS*)GetWindowLongPtr(hWnd,0); -> Obter os dados na função janela
+	//DATA dados; 
+	//todo Preencher a estrutura e passá la no ultimo parametro do create window
+/*
+//Para o Parametro enviado janela
+	LONG_PTR userdata = GetWindowLongPtr(hWnd, GWLP_USERDATA);
+	PDATA dados = NULL;
+
+	// Parametros adicionais para a janela  <--------
+	if (messg == WM_CREATE) {
+		CREATESTRUCT* pCreate = (CREATESTRUCT*)(lParam);
+		dados = (PDATA)pCreate->lpCreateParams;
+		SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)dados);
+	}
+	else {
+		dados = (PDATA)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+	}
+*/
+	
+	dadosPipe.terminar = 0;
+	estruturaThread.continua = 1;
+	char flagMostraA = 0; // todo retirar esta flag
+	threadcons.flagMostraA = &flagMostraA;
+	estruturaThread.flagMostraA = &flagMostraA;
+	threadcons.nAviao = 0;
+	estruturaThread.nAviao = &threadcons.nAviao;
+	estruturaThread.pipes = &dadosPipe;
+	threadcons.pipes = &dadosPipe;
+	threadcons.sinc = &sinc;
+	threadcons.hWnd = &hWnd;
 
 	// ============================================================================
 	// 3. Criar a janela
@@ -117,90 +160,8 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 	// 4. Inicializar programa
 	// ============================================================================
 
-	dadosPipe.terminar = 0;
-	estruturaThread.continua = 1;
-	char flagMostraA = 0; // todo retirar esta flag
-	threadcons.flagMostraA = &flagMostraA;
-	estruturaThread.flagMostraA = &flagMostraA;
-	threadcons.nAviao = 0;
-	estruturaThread.nAviao = &threadcons.nAviao;
-	estruturaThread.pipes = &dadosPipe;
-	threadcons.pipes = &dadosPipe;
-	threadcons.sinc = &sinc;
-	threadcons.hWnd = &hWnd;
-/*
-	DATA dados;
-	dados.dadosPipe.terminar = 0;
-	dados.estruturaThread.continua = 1;
-	char flagMostraA = 0; // todo retirar esta flag
-	dados.threadcons.flagMostraA = &flagMostraA;
-	dados.estruturaThread.flagMostraA = &flagMostraA;
-	dados.threadcons.nAviao = 0;
-	dados.estruturaThread.nAviao = &threadcons.nAviao;
-	dados.estruturaThread.pipes = &dadosPipe;
-	dados.threadcons.pipes = &dadosPipe;
-	dados.threadcons.sinc = &sinc;
-
-	if ((dados.estruturaThread.evento = dados.threadcons.handles[0] = CreateEvent(NULL, TRUE, FALSE, EVENTO)) == NULL) 
-		return -1;
-
-#ifdef UNICODE
-	_setmode(_fileno(stdin), _O_WTEXT);
-	_setmode(_fileno(stdout), _O_WTEXT);
-	_setmode(_fileno(stderr), _O_WTEXT);
-#endif
-
-	if (!verificaChave(&dados.estruturaThread.valoresMax)) 
-		return -1;
 	
 
-	if (abreFileMap(&dados.estruturaThread.dadosMem))
-		return -1;
-	
-	dados.threadcons.dados = &dados.estruturaThread.dadosMem;
-	dados.threadcons.listaAvioes = malloc(dados.estruturaThread.valoresMax.numMaxAvioes * sizeof(Aviao));
-	dados.estruturaThread.listaAvioes = dados.threadcons.listaAvioes;
-
-	if (dados.threadcons.listaAvioes == NULL)
-		return -1;
-	
-	if (!criaSinc(dados.estruturaThread.valoresMax.numMaxAvioes, &dados.sinc, &dados.sem))
-		return -1;
-
-	dados.estruturaThread.sinc = &dados.sinc;
-	dados.threadcons.dados->semAviao = dados.sem.semAviao;
-	dados.threadcons.dados->mutexMensagens = dados.sem.mutexMensagens;
-	dados.threadcons.handles[1] = dados.sem.semControl;
-
-	if (!criaFileMap(&dados.estruturaThread.dadosMem, dados.estruturaThread.valoresMax)) 
-		return -1;
-
-	if (!criaMapViewOfFiles(&dados.estruturaThread.dadosMem, dados.estruturaThread.valoresMax, TRUE)) 
-		return -1;
-
-	dados.estruturaThread.dadosMem.BufCircular->nAeroportos = 0;
-	dados.threadcons.dados->BufCircular->in = 0;
-	dados.threadcons.dados->BufCircular->out = 0;
-	dados.threadcons.control = 0;
-	dados.dadosPipe.dados = &dados.estruturaThread.dadosMem;
-
-	if ((dados.hthread[dados.contThread++] = CreateThread(NULL, 0, ThreadConsumidor, &dados.threadcons, 0, NULL)) == NULL)
-		return -1;
-	
-
-	if ((dados.hthread[dados.contThread++] = CreateThread(NULL, 0, PingAviao, &dados.threadcons, 0, NULL)) == NULL)
-		return -1;
-	
-	SetWindowLongPtr(hWnd,0, (LONG_PTR)& dados);
-
-	WaitForMultipleObjects(dados.contThread, dados.hthread, TRUE, INFINITE);
-
-	fechaViewFile(&dados.estruturaThread.dadosMem);
-
-	fechaHandleMem(&dados.estruturaThread.dadosMem);
-	free(dados.threadcons.listaAvioes);
-	return((int)lpMsg.wParam);	// Retorna sempre o parâmetro wParam da estrutura lpMsg
-*/
 
 	if ((estruturaThread.evento = threadcons.handles[0] = CreateEvent(NULL, TRUE, FALSE, EVENTO)) == NULL) {
 		_ftprintf(stderr, TEXT("Erro ao criar evento!\n"));
@@ -442,6 +403,7 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 				break;
 			}
 			case ID_AVI32777: // Botão checked para mostrar alertas importantes sobre os aviões
+			{
 				DWORD antes = CheckMenuItem(GetMenu(hWnd), ID_AVI32777, NULL);
 				if (antes == MF_CHECKED) // Desliga os alertas
 				{
@@ -454,7 +416,7 @@ LRESULT CALLBACK TrataEventos(HWND hWnd, UINT messg, WPARAM wParam, LPARAM lPara
 					CheckMenuItem(GetMenu(hWnd), ID_AVI32777, MF_CHECKED);
 				}
 				break;
-				break;
+			}
 			case ID_SOBRE: 
 			{
 				DialogBox(hInstance, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, sobre_menu);

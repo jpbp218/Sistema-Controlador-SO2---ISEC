@@ -1,4 +1,4 @@
-#include "threadsControlador.h"
+ï»¿#include "threadsControlador.h"
 
 
 // ==================== Threads =======================
@@ -14,20 +14,20 @@ DWORD WINAPI ThreadConsumidor(LPVOID param) {
 	while (!dadosBuf->control) {
 		WaitForMultipleObjects(2, dadosBuf->handles, FALSE, INFINITE);
 		CopyMemory(&aux, &dadosBuf->dados->BufCircular->buffer[dadosBuf->dados->BufCircular->out], sizeof(Aviao));
-		if ((i = verificaAviao(dadosBuf->nAviao, dadosBuf->listaAvioes, aux.id)) == -1 && wcscmp(aux.msg, TEXT("embarcar")) != 0) { // Regista um novo avião que se conectou
-			_ftprintf(stdout, TEXT("\n\nA registar novo avião! %d\n\nComando:"), aux.id);
+		if ((i = verificaAviao(dadosBuf->nAviao, dadosBuf->listaAvioes, aux.id)) == -1 && wcscmp(aux.msg, TEXT("embarcar")) != 0) { // Regista um novo aviÃ£o que se conectou
+			_ftprintf(stdout, TEXT("\n\nA registar novo aviÃ£o! %d\n\nComando:"), aux.id);
 			dadosBuf->listaAvioes[dadosBuf->nAviao++] = aux;
 			if (*dadosBuf->flagMostraA)
 			{
 				TCHAR auxAText[100];
 				_stprintf_s(auxAText, sizeof(auxAText) / sizeof(TCHAR),
-					TEXT("Novo avião registado no sistema com o identificador %d e no aeroporto %s!"),
+					TEXT("Novo aviÃ£o registado no sistema com o identificador %d e no aeroporto %s!"),
 					aux.id, aux.partida.nome);
 
 				MessageBox(
 					*dadosBuf->hWnd,
 					auxAText,
-					TEXT("Novo Avião"),
+					TEXT("Novo AviÃ£o"),
 					MB_OK | MB_ICONINFORMATION);
 			}
 		}
@@ -38,17 +38,17 @@ DWORD WINAPI ThreadConsumidor(LPVOID param) {
 					dadosBuf->pipes->structClientes[i].idAviao = aux.id;
 					dadosBuf->pipes->structClientes[i].flagViagem = 1;
 					TCHAR msgTemp[200];
-					_stprintf_s(msgTemp, sizeof(msgTemp) / sizeof(TCHAR), TEXT("Embarcou no avião %d com destino a %s"), aux.id, aux.destino.nome);
+					_stprintf_s(msgTemp, sizeof(msgTemp) / sizeof(TCHAR), TEXT("Embarcou no aviÃ£o %d com destino a %s"), aux.id, aux.destino.nome);
 					comunicaPassageiro(dadosBuf->pipes->clientes[i], dadosBuf->pipes->structClientes[i].evento, msgTemp);
 					auxPassageiros++;
 				}
 			}
 		}
-		else if (i >= 0) {  // Atualiza as coordenadas de um avião e verifica se são válidas ou não
+		else if (i >= 0) {  // Atualiza as coordenadas de um aviÃ£o e verifica se sÃ£o vÃ¡lidas ou nÃ£o
 			if (aux.flagChegada == 1 && *dadosBuf->flagMostraA == 1) {
 				TCHAR auxAText[100];
 				_stprintf_s(auxAText, sizeof(auxAText) / sizeof(TCHAR),
-					TEXT("O Avião %d aterrou no aeroporto %s com sucesso!"),
+					TEXT("O AviÃ£o %d aterrou no aeroporto %s com sucesso!"),
 					aux.id, aux.destino.nome);
 
 				MessageBox(
@@ -73,9 +73,9 @@ DWORD WINAPI ThreadConsumidor(LPVOID param) {
 				dadosBuf->control = 1;
 			evento[1] = dadosBuf->dados->mutexMensagens;
 
-			// verifica se as coordenadas para onde o avião pertende ir são válidas
+			// verifica se as coordenadas para onde o aviÃ£o pertende ir sÃ£o vÃ¡lidas
 			if (validaCordsAviao(dadosBuf->dados, dadosBuf->listaAvioes, dadosBuf->nAviao, aux)) {
-				_stprintf_s(msgResposta.mensagem, TAM_MENSAGEM, TEXT("OK")); // Responde ao avião que a posição pertendida está disponível
+				_stprintf_s(msgResposta.mensagem, TAM_MENSAGEM, TEXT("OK")); // Responde ao aviÃ£o que a posiÃ§Ã£o pertendida estÃ¡ disponÃ­vel
 				dadosBuf->listaAvioes[i] = aux;
 
 				for (int i = 0; i < TOTAL_PASSAGEIROS; i++) {
@@ -87,11 +87,11 @@ DWORD WINAPI ThreadConsumidor(LPVOID param) {
 				}
 			}
 			else {
-				_stprintf_s(msgResposta.mensagem, TAM_MENSAGEM, TEXT("NAO_PERMITIDO")); // Responde ao avião que a posição que se pertende deslocar está ocupada e deve efetuar um desvio
+				_stprintf_s(msgResposta.mensagem, TAM_MENSAGEM, TEXT("NAO_PERMITIDO")); // Responde ao aviÃ£o que a posiÃ§Ã£o que se pertende deslocar estÃ¡ ocupada e deve efetuar um desvio
 				if (*dadosBuf->flagMostraA) {
 					TCHAR auxAText[100];
 					_stprintf_s(auxAText, sizeof(auxAText) / sizeof(TCHAR),
-						TEXT("Atenção! O Avião com identificador %d vai efetuar um desvio de um obstáculo!"),
+						TEXT("AtenÃ§Ã£o! O AviÃ£o com identificador %d vai efetuar um desvio de um obstÃ¡culo!"),
 						aux.id);
 
 					MessageBox(
@@ -120,14 +120,43 @@ DWORD WINAPI ThreadConsumidor(LPVOID param) {
 	return 0;
 }
 
-DWORD WINAPI PingAviao(LPVOID param) { // Tenta comunicar com todos os aviões registrados de 3 em 3 segundos
+DWORD WINAPI PingAviao(LPVOID param) { // Tenta comunicar com todos os aviï¿½es registrados de 3 em 3 segundos
 	PTHREADCONS dados = (PTHREADCONS)param;
 	TCHAR nomeEvento[20];
 	HANDLE evento;
+	HANDLE arrWait[2];
+
+	LARGE_INTEGER liDueTime;
+	liDueTime.QuadPart = TEMP_PING;
+
+	arrWait[0] = dados->handles[0];
+	arrWait[1] = CreateWaitableTimer(NULL, TRUE, NULL);
+
+	if (arrWait[0] == NULL)
+	{
+		_ftprintf(stdout, TEXT("Evento de terminar falhou (%d)\n"), GetLastError());
+		return 1;
+	}
+
+	if (arrWait[1] == NULL)
+	{
+		_ftprintf(stdout, TEXT("CreateWaitableTimer falhou (%d)\n"), GetLastError());
+		return 2;
+	}
+
 
 	while (!dados->control)
 	{
-		Sleep(TEMP_PING);
+		if (!SetWaitableTimer(arrWait[1], &liDueTime, 0, NULL, NULL, 0))
+		{
+			_ftprintf(stderr, TEXT("SetWaitableTimer falhou (%d)\n"), GetLastError());
+			return 3;
+		}
+
+		if ((WaitForMultipleObjects(2, arrWait, FALSE, INFINITE) - WAIT_OBJECT_0) == 0)
+			break;
+
+
 		for (int i = 0; i < dados->nAviao; i++)
 		{
 			_stprintf_s(nomeEvento, 19, TEXT("%d"), dados->listaAvioes[i].id);
@@ -143,7 +172,7 @@ DWORD WINAPI PingAviao(LPVOID param) { // Tenta comunicar com todos os aviões re
 				{
 					TCHAR auxAText[100];
 					_stprintf_s(auxAText, sizeof(auxAText) / sizeof(TCHAR),
-						TEXT("Avião %d deixou de efetuar contacto!"),
+						TEXT("Aviï¿½o %d deixou de efetuar contacto!"),
 						dados->listaAvioes[i].id);
 
 					MessageBox(
@@ -159,8 +188,10 @@ DWORD WINAPI PingAviao(LPVOID param) { // Tenta comunicar com todos os aviões re
 			CloseHandle(evento);
 		}
 	}
+	CloseHandle(arrWait[1]);
 	return 0;
 }
+
 
 DWORD WINAPI threadLeitura(LPVOID param) {
 	DATAPIPES Resposta;
@@ -179,7 +210,7 @@ DWORD WINAPI threadLeitura(LPVOID param) {
 
 	eventoEscrita = CreateEvent(NULL, TRUE, FALSE, NULL);
 	eventos[0] = CreateEvent(NULL, TRUE, FALSE, NULL); //Evento para overlaped
-	eventos[1] = CreateEvent(NULL, TRUE, FALSE, NULL); //Handle inicial só para nao meter um evento vazio
+	eventos[1] = CreateEvent(NULL, TRUE, FALSE, NULL); //Handle inicial sÃ³ para nao meter um evento vazio
 
 	if (eventos[0] == NULL && eventos[1] == NULL)
 		return 1;
@@ -251,7 +282,6 @@ DWORD WINAPI ThreadPassageiros(LPVOID param) {
 		return 1;
 	}
 
-	
 	iniciaClientes(dadosPipe);
 	
 	while(!dadosPipe->terminar){

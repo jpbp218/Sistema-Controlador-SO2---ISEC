@@ -258,7 +258,7 @@ int _tmain(int argc, LPTSTR argv[])
 	CloseHandle(threadLeMsgData.eventoContinua);
 	fechaViewFile(dadosThread.dadosMem);
 	return 0;
-} // todo Run-Time Check Failure #2 - Stack around the variable 'dados' was corrupted.
+}
 
 DWORD WINAPI ThreadViagem(LPVOID param) {
 	PTDATA dados = (PTDATA)param;
