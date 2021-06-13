@@ -175,7 +175,7 @@ DWORD WINAPI PingAviao(LPVOID param) { // Tenta comunicar com todos os avi�es 
 				{
 					TCHAR auxAText[100];
 					_stprintf_s(auxAText, sizeof(auxAText) / sizeof(TCHAR),
-						TEXT("Avi�o %d deixou de efetuar contacto!"),
+						TEXT("Avião %d deixou de efetuar contacto!"),
 						dados->listaAvioes[i].id);
 
 					MessageBox(
