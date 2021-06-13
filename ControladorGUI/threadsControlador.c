@@ -34,7 +34,7 @@ DWORD WINAPI ThreadConsumidor(LPVOID param) {
 		else if (wcscmp(aux.msg, TEXT("embarcar")) == 0) {
 			for (int i = 0, auxPassageiros = 0; i < TOTAL_PASSAGEIROS && auxPassageiros < aux.cap_max; i++) {
 				if (wcscmp(aux.partida.nome, dadosBuf->pipes->structClientes[i].aeroportoOrigem) == 0 &&
-					wcscmp(aux.destino.nome, dadosBuf->pipes->structClientes[i].aeroportoDestino) == 0) {
+					wcscmp(aux.destino.nome, dadosBuf->pipes->structClientes[i].aeroportoDestino) == 0 && dadosBuf->pipes->structClientes[i].flagViagem != 1) {
 					dadosBuf->pipes->structClientes[i].idAviao = aux.id;
 					dadosBuf->pipes->structClientes[i].flagViagem = 1;
 					TCHAR msgTemp[200];

@@ -553,6 +553,9 @@ INT_PTR CALLBACK dialog_regista_aeroporto(HWND hDlg, UINT message, WPARAM wParam
 			return (INT_PTR)TRUE;
 		}
 		break;
+	case WM_CLOSE:
+		EndDialog(hDlg, LOWORD(wParam));
+		break;
 	}
 	return (INT_PTR)FALSE;
 }
@@ -563,28 +566,31 @@ INT_PTR CALLBACK sobre_menu(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
 
 	switch (message)
 	{
-	case WM_INITDIALOG:
-	{
-		SetWindowLongPtr(hDlg, GWLP_USERDATA, (LONG_PTR)lParam);
-		dados = (PDATA)GetWindowLongPtr(hDlg, GWLP_USERDATA);
-		// Atualiza texto
-		TCHAR auxLabel[200];
-		// Aviões
-		_stprintf_s(auxLabel, sizeof(auxLabel) / sizeof(TCHAR), TEXT("Máximo de Aviões: %d"), dados->estruturaThread.valoresMax.numMaxAvioes);
-		Static_SetText(GetDlgItem(hDlg, IDC_STATIC_AVIOES), auxLabel);
-		// Aeroportos
-		_stprintf_s(auxLabel, sizeof(auxLabel) / sizeof(TCHAR), TEXT("Máximo de Aeroportos: %d"), dados->estruturaThread.valoresMax.numMaxAeroportos);
-		Static_SetText(GetDlgItem(hDlg, IDC_STATIC_AEROPORTOS), auxLabel);
-
-		return (INT_PTR)TRUE;
-	}
-	case WM_COMMAND:
-		if (LOWORD(wParam) == IDOK )// Criar um novo aeroporto
+		case WM_INITDIALOG:
 		{
-			EndDialog(hDlg, LOWORD(wParam));
+			SetWindowLongPtr(hDlg, GWLP_USERDATA, (LONG_PTR)lParam);
+			dados = (PDATA)GetWindowLongPtr(hDlg, GWLP_USERDATA);
+			// Atualiza texto
+			TCHAR auxLabel[200];
+			// Aviões
+			_stprintf_s(auxLabel, sizeof(auxLabel) / sizeof(TCHAR), TEXT("Máximo de Aviões: %d"), dados->estruturaThread.valoresMax.numMaxAvioes);
+			Static_SetText(GetDlgItem(hDlg, IDC_STATIC_AVIOES), auxLabel);
+			// Aeroportos
+			_stprintf_s(auxLabel, sizeof(auxLabel) / sizeof(TCHAR), TEXT("Máximo de Aeroportos: %d"), dados->estruturaThread.valoresMax.numMaxAeroportos);
+			Static_SetText(GetDlgItem(hDlg, IDC_STATIC_AEROPORTOS), auxLabel);
+
 			return (INT_PTR)TRUE;
 		}
-		break;
+		case WM_COMMAND:
+			if (LOWORD(wParam) == IDOK )// Criar um novo aeroporto
+			{
+				EndDialog(hDlg, LOWORD(wParam));
+				return (INT_PTR)TRUE;
+			}
+			break;
+		case WM_CLOSE:
+			EndDialog(hDlg, LOWORD(wParam));
+			break;
 	}
 	return (INT_PTR)FALSE;
 }
@@ -595,23 +601,26 @@ INT_PTR CALLBACK ver_passageiros(HWND hDlg, UINT message, WPARAM wParam, LPARAM 
 
 	switch (message)
 	{
-	case WM_INITDIALOG:
-	{
-		SetWindowLongPtr(hDlg, GWLP_USERDATA, (LONG_PTR)lParam);
-		dados = (PDATA)GetWindowLongPtr(hDlg, GWLP_USERDATA);
-		ListBox_ResetContent(GetDlgItem(hDlg, IDC_LIST1)); // Dá Reset a toda a lista
-		TCHAR auxL[200];
-		acrescentaPassageiroLista(dados->estruturaThread.pipes, GetDlgItem(hDlg, IDC_LIST1));
-
-		return (INT_PTR)TRUE;
-	}
-	case WM_COMMAND:
-		if (LOWORD(wParam) == IDOK)// Criar um novo aeroporto
+		case WM_INITDIALOG:
 		{
-			EndDialog(hDlg, LOWORD(wParam));
+			SetWindowLongPtr(hDlg, GWLP_USERDATA, (LONG_PTR)lParam);
+			dados = (PDATA)GetWindowLongPtr(hDlg, GWLP_USERDATA);
+			ListBox_ResetContent(GetDlgItem(hDlg, IDC_LIST1)); // Dá Reset a toda a lista
+			TCHAR auxL[200];
+			acrescentaPassageiroLista(dados->estruturaThread.pipes, GetDlgItem(hDlg, IDC_LIST1));
+
 			return (INT_PTR)TRUE;
 		}
-		break;
+		case WM_COMMAND:
+			if (LOWORD(wParam) == IDOK)// Criar um novo aeroporto
+			{
+				EndDialog(hDlg, LOWORD(wParam));
+				return (INT_PTR)TRUE;
+			}
+			break;
+		case WM_CLOSE:
+			EndDialog(hDlg, LOWORD(wParam));
+			break;
 	}
 	return (INT_PTR)FALSE;
 }
